@@ -152,8 +152,8 @@ This implementation plan provides a series of prompts for implementing the AI ag
   - _Requirements: 3.2, 3.3_
 
 
-- [ ] 5. Add Anthropic provider and provider factory
-- [ ] 5.1 Create Anthropic request and response types
+- [x] 5. Add Anthropic provider and provider factory
+- [x] 5.1 Create Anthropic request and response types
   - Create `llm/src/anthropic/types.rs` with Anthropic API types
   - Define MessagesRequest with model, messages, system, temperature, max_tokens fields
   - Define MessagesResponse with content array
@@ -161,14 +161,14 @@ This implementation plan provides a series of prompts for implementing the AI ag
   - Add serde derives for serialization
   - _Requirements: 3.2_
 
-- [ ] 5.2 Implement AnthropicProvider
+- [x] 5.2 Implement AnthropicProvider
   - Create `llm/src/anthropic/mod.rs` with AnthropicProvider struct
   - Store api_key, model, temperature, max_tokens, and ApiClient
   - Implement constructor `new(config: &LLMConfig) -> Result<Self>`
   - Convert framework Message types to Anthropic format, separating system messages
   - _Requirements: 3.2_
 
-- [ ] 5.3 Implement send_message for Anthropic
+- [x] 5.3 Implement send_message for Anthropic
   - Implement LLMProvider trait for AnthropicProvider
   - Build MessagesRequest from messages
   - Call Anthropic API at https://api.anthropic.com/v1/messages
@@ -177,14 +177,14 @@ This implementation plan provides a series of prompts for implementing the AI ag
   - Handle API errors appropriately
   - _Requirements: 3.2, 3.3_
 
-- [ ] 5.4 Implement provider factory
+- [x] 5.4 Implement provider factory
   - Create `llm/src/factory.rs` with `create_provider(config: &LLMConfig) -> Result<Box<dyn LLMProvider>>` function
   - Match on config.provider string ("openai" or "anthropic")
   - Return appropriate provider instance
   - Return error for unknown provider types
   - _Requirements: 3.2_
 
-- [ ] 5.5 Update llm lib.rs with public exports
+- [x] 5.5 Update llm lib.rs with public exports
   - Re-export LLMProvider trait, create_provider function
   - Re-export OpenAIProvider and AnthropicProvider
   - Add module documentation
