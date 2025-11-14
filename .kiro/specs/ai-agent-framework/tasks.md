@@ -2,28 +2,28 @@
 
 This implementation plan provides a series of prompts for implementing the AI agent framework. Each task builds incrementally on previous work, with all code integrated and functional at each step.
 
-- [ ] 1. Set up workspace structure and core crate
-- [ ] 1.1 Initialize cargo workspace with root Cargo.toml defining workspace members and shared dependencies
+- [x] 1. Set up workspace structure and core crate
+- [x] 1.1 Initialize cargo workspace with root Cargo.toml defining workspace members and shared dependencies
   - Create workspace with `cargo new --lib ai-agent-framework`
   - Add [workspace] section with members array
   - Add [workspace.dependencies] for shared crates (serde, thiserror, tokio)
   - _Requirements: 1.1, 1.2_
 
-- [ ] 1.2 Create core crate with Message and Role types
+- [x] 1.2 Create core crate with Message and Role types
   - Create core crate with `cargo new --lib core`
   - Define Message struct with role, content, and timestamp fields in `core/src/message.rs`
   - Define Role enum (System, User, Assistant) with serde derives
   - Add helper methods for creating messages (Message::system, Message::user, Message::assistant)
   - _Requirements: 1.1, 1.3_
 
-- [ ] 1.3 Implement AgentError type with thiserror
+- [x] 1.3 Implement AgentError type with thiserror
   - Create `core/src/error.rs` with AgentError enum
   - Add variants for Config, LLMProvider, ToolExecution, GuardrailViolation, Memory, Planning, Execution errors
   - Implement From traits for std::io::Error and serde_json::Error
   - Define Result<T> type alias as std::result::Result<T, AgentError>
   - _Requirements: 12.1, 12.2, 12.3_
 
-- [ ] 1.4 Create core lib.rs with public exports
+- [x] 1.4 Create core lib.rs with public exports
   - Re-export Message, Role, AgentError, and Result from lib.rs
   - Add module documentation explaining core crate purpose
   - _Requirements: 1.3_
@@ -34,7 +34,7 @@ This implementation plan provides a series of prompts for implementing the AI ag
   - Verify serde serialization/deserialization of Message
   - _Requirements: 12.2_
 
-- [ ] 1.6 Create root README with project overview
+- [x] 1.6 Create root README with project overview
   - Document project structure and crate purposes
   - Add getting started instructions
   - Include architecture overview
