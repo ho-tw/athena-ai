@@ -41,8 +41,8 @@ This implementation plan provides a series of prompts for implementing the AI ag
   - _Requirements: 1.4_
 
 
-- [ ] 2. Implement configuration management
-- [ ] 2.1 Create config crate with configuration structures
+- [x] 2. Implement configuration management
+- [x] 2.1 Create config crate with configuration structures
   - Create config crate with `cargo new --lib config`
   - Define AgentConfig struct with llm, memory, tools, and guardrails fields in `config/src/lib.rs`
   - Define LLMConfig struct with provider, model, api_key, temperature, and max_tokens fields
@@ -50,19 +50,19 @@ This implementation plan provides a series of prompts for implementing the AI ag
   - Add serde Deserialize derives to all config structs
   - _Requirements: 2.1, 2.2_
 
-- [ ] 2.2 Implement file-based configuration loading
+- [x] 2.2 Implement file-based configuration loading
   - Implement `load_from_file(path: &Path) -> Result<AgentConfig>` function
   - Use serde_yaml to parse YAML config files
   - Add proper error handling with context about which file failed to load
   - _Requirements: 2.2_
 
-- [ ] 2.3 Implement environment variable configuration
+- [x] 2.3 Implement environment variable configuration
   - Implement `from_env() -> Result<AgentConfig>` function
   - Read OPENAI_API_KEY, ANTHROPIC_API_KEY, MODEL, TEMPERATURE from environment
   - Provide sensible defaults for optional parameters (temperature: 0.7, max_tokens: 2000)
   - _Requirements: 2.4, 2.5_
 
-- [ ] 2.4 Implement configuration merging and validation
+- [x] 2.4 Implement configuration merging and validation
   - Implement `merge(file_config: AgentConfig, env_config: AgentConfig) -> AgentConfig` function
   - Environment variables should override file-based values
   - Implement `validate(config: &AgentConfig) -> Result<()>` to check required fields
@@ -76,7 +76,7 @@ This implementation plan provides a series of prompts for implementing the AI ag
   - Test merge logic with various combinations
   - _Requirements: 2.2, 2.3, 2.4_
 
-- [ ] 2.6 Create example configuration files
+- [x] 2.6 Create example configuration files
   - Create `examples/configs/simple.yaml` with OpenAI configuration
   - Create `examples/configs/anthropic.yaml` with Anthropic configuration
   - Add comments explaining each configuration option

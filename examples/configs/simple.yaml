@@ -1,0 +1,45 @@
+# Simple OpenAI Configuration
+# This configuration uses OpenAI's GPT models for the AI agent
+
+llm:
+  # Provider name - "openai" for OpenAI models
+  provider: openai
+  
+  # Model to use - options include:
+  # - gpt-4: Most capable model, higher cost
+  # - gpt-4-turbo: Faster GPT-4 variant
+  # - gpt-3.5-turbo: Fast and cost-effective
+  model: gpt-3.5-turbo
+  
+  # API key for authentication
+  # Use environment variable for security: ${OPENAI_API_KEY}
+  # Or set directly (not recommended for production): sk-...
+  api_key: ${OPENAI_API_KEY}
+  
+  # Temperature controls randomness (0.0 to 2.0)
+  # - Lower values (0.0-0.3): More focused and deterministic
+  # - Medium values (0.4-0.7): Balanced creativity
+  # - Higher values (0.8-2.0): More creative and varied
+  temperature: 0.7
+  
+  # Maximum tokens in the response
+  # Limits the length of generated text
+  max_tokens: 2000
+
+memory:
+  # Maximum number of messages to retain in conversation history
+  # Older messages are dropped when this limit is reached
+  max_messages: 50
+  
+  # Token budget for context window
+  # Controls how much conversation history is sent to the LLM
+  token_budget: 4000
+
+# List of enabled tools (optional)
+# Available tools: calculator, file_reader, web_search
+tools:
+  - calculator
+
+# List of enabled guardrails (optional)
+# Available guardrails: file_path, rate_limit
+guardrails: []
