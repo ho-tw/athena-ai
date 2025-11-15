@@ -1,0 +1,12 @@
+[package]
+name = "executor"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+agent-core = { version = "0.1.0", path = "../core" }
+memory = { version = "0.1.0", path = "../memory" }
+planner = { version = "0.1.0", path = "../planner" }
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
+tools = { version = "0.1.0", path = "../tools" }
