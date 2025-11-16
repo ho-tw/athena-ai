@@ -28,7 +28,7 @@ This implementation plan provides a series of prompts for implementing the AI ag
   - Add module documentation explaining core crate purpose
   - _Requirements: 1.3_
 
-- [ ]* 1.5 Write unit tests for core types
+- [x] 1.5 Write unit tests for core types
   - Test Message creation with different roles
   - Test error conversion from io::Error and serde_json::Error
   - Verify serde serialization/deserialization of Message
@@ -69,7 +69,7 @@ This implementation plan provides a series of prompts for implementing the AI ag
   - Ensure api_key, provider, and model are present
   - _Requirements: 2.3, 2.4_
 
-- [ ]* 2.5 Write unit tests for configuration loading
+- [x] 2.5 Write unit tests for configuration loading
   - Test parsing valid YAML config files
   - Test error handling for missing required fields
   - Test environment variable override behavior

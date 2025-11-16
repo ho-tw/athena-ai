@@ -7,3 +7,6 @@ edition = "2024"
 agent-core = { version = "0.1.0", path = "../core" }
 serde = { workspace = true, features = ["derive"] }
 serde_yaml = "0.9.34"
+
+[dev-dependencies]
+serial_test = "3.2.0"

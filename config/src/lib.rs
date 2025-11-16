@@ -248,6 +248,7 @@ pub fn from_env() -> Result<AgentConfig> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serial_test::serial;
     use std::io::Write;
 
     #[test]
@@ -330,7 +331,16 @@ guardrails:
     }
 
     #[test]
+    #[serial]
     fn test_from_env_openai() {
+        // Save existing env vars
+        let saved_provider = std::env::var("LLM_PROVIDER").ok();
+        let saved_openai_key = std::env::var("OPENAI_API_KEY").ok();
+        let saved_anthropic_key = std::env::var("ANTHROPIC_API_KEY").ok();
+        let saved_model = std::env::var("MODEL").ok();
+        let saved_temp = std::env::var("TEMPERATURE").ok();
+        let saved_tokens = std::env::var("MAX_TOKENS").ok();
+
         unsafe {
             std::env::set_var("LLM_PROVIDER", "openai");
             std::env::set_var("OPENAI_API_KEY", "test-openai-key");
@@ -347,21 +357,34 @@ guardrails:
         assert_eq!(config.llm.temperature, 0.9);
         assert_eq!(config.llm.max_tokens, 1000);
 
-        // Clean up
+        // Restore env vars
         unsafe {
-            std::env::remove_var("LLM_PROVIDER");
-            std::env::remove_var("OPENAI_API_KEY");
-            std::env::remove_var("MODEL");
-            std::env::remove_var("TEMPERATURE");
-            std::env::remove_var("MAX_TOKENS");
+            if let Some(v) = saved_provider { std::env::set_var("LLM_PROVIDER", v); } else { std::env::remove_var("LLM_PROVIDER"); }
+            if let Some(v) = saved_openai_key { std::env::set_var("OPENAI_API_KEY", v); } else { std::env::remove_var("OPENAI_API_KEY"); }
+            if let Some(v) = saved_anthropic_key { std::env::set_var("ANTHROPIC_API_KEY", v); } else { std::env::remove_var("ANTHROPIC_API_KEY"); }
+            if let Some(v) = saved_model { std::env::set_var("MODEL", v); } else { std::env::remove_var("MODEL"); }
+            if let Some(v) = saved_temp { std::env::set_var("TEMPERATURE", v); } else { std::env::remove_var("TEMPERATURE"); }
+            if let Some(v) = saved_tokens { std::env::set_var("MAX_TOKENS", v); } else { std::env::remove_var("MAX_TOKENS"); }
         }
     }
 
     #[test]
     fn test_from_env_anthropic() {
+        // Save existing env vars
+        let saved_provider = std::env::var("LLM_PROVIDER").ok();
+        let saved_openai_key = std::env::var("OPENAI_API_KEY").ok();
+        let saved_anthropic_key = std::env::var("ANTHROPIC_API_KEY").ok();
+        let saved_model = std::env::var("MODEL").ok();
+        let saved_temp = std::env::var("TEMPERATURE").ok();
+        let saved_tokens = std::env::var("MAX_TOKENS").ok();
+
         unsafe {
             std::env::set_var("LLM_PROVIDER", "anthropic");
             std::env::set_var("ANTHROPIC_API_KEY", "test-anthropic-key");
+            std::env::remove_var("OPENAI_API_KEY");
+            std::env::remove_var("MODEL");
+            std::env::remove_var("TEMPERATURE");
+            std::env::remove_var("MAX_TOKENS");
         }
 
         let config = from_env().unwrap();
@@ -372,16 +395,33 @@ guardrails:
         assert_eq!(config.llm.temperature, 0.7);
         assert_eq!(config.llm.max_tokens, 2000);
 
-        // Clean up
+        // Restore env vars
         unsafe {
-            std::env::remove_var("LLM_PROVIDER");
-            std::env::remove_var("ANTHROPIC_API_KEY");
+            if let Some(v) = saved_provider { std::env::set_var("LLM_PROVIDER", v); } else { std::env::remove_var("LLM_PROVIDER"); }
+            if let Some(v) = saved_openai_key { std::env::set_var("OPENAI_API_KEY", v); } else { std::env::remove_var("OPENAI_API_KEY"); }
+            if let Some(v) = saved_anthropic_key { std::env::set_var("ANTHROPIC_API_KEY", v); } else { std::env::remove_var("ANTHROPIC_API_KEY"); }
+            if let Some(v) = saved_model { std::env::set_var("MODEL", v); } else { std::env::remove_var("MODEL"); }
+            if let Some(v) = saved_temp { std::env::set_var("TEMPERATURE", v); } else { std::env::remove_var("TEMPERATURE"); }
+            if let Some(v) = saved_tokens { std::env::set_var("MAX_TOKENS", v); } else { std::env::remove_var("MAX_TOKENS"); }
         }
     }
 
     #[test]
     fn test_from_env_defaults() {
+        // Save existing env vars
+        let saved_provider = std::env::var("LLM_PROVIDER").ok();
+        let saved_openai_key = std::env::var("OPENAI_API_KEY").ok();
+        let saved_anthropic_key = std::env::var("ANTHROPIC_API_KEY").ok();
+        let saved_model = std::env::var("MODEL").ok();
+        let saved_temp = std::env::var("TEMPERATURE").ok();
+        let saved_tokens = std::env::var("MAX_TOKENS").ok();
+
         unsafe {
+            std::env::remove_var("LLM_PROVIDER");
+            std::env::remove_var("ANTHROPIC_API_KEY");
+            std::env::remove_var("MODEL");
+            std::env::remove_var("TEMPERATURE");
+            std::env::remove_var("MAX_TOKENS");
             std::env::set_var("OPENAI_API_KEY", "test-key");
         }
 
@@ -394,14 +434,27 @@ guardrails:
         assert_eq!(config.memory.max_messages, 50);
         assert_eq!(config.memory.token_budget, 4000);
 
-        // Clean up
+        // Restore env vars
         unsafe {
-            std::env::remove_var("OPENAI_API_KEY");
+            if let Some(v) = saved_provider { std::env::set_var("LLM_PROVIDER", v); } else { std::env::remove_var("LLM_PROVIDER"); }
+            if let Some(v) = saved_openai_key { std::env::set_var("OPENAI_API_KEY", v); } else { std::env::remove_var("OPENAI_API_KEY"); }
+            if let Some(v) = saved_anthropic_key { std::env::set_var("ANTHROPIC_API_KEY", v); } else { std::env::remove_var("ANTHROPIC_API_KEY"); }
+            if let Some(v) = saved_model { std::env::set_var("MODEL", v); } else { std::env::remove_var("MODEL"); }
+            if let Some(v) = saved_temp { std::env::set_var("TEMPERATURE", v); } else { std::env::remove_var("TEMPERATURE"); }
+            if let Some(v) = saved_tokens { std::env::set_var("MAX_TOKENS", v); } else { std::env::remove_var("MAX_TOKENS"); }
         }
     }
 
     #[test]
     fn test_from_env_missing_api_key() {
+        // Save existing env vars
+        let saved_provider = std::env::var("LLM_PROVIDER").ok();
+        let saved_openai_key = std::env::var("OPENAI_API_KEY").ok();
+        let saved_anthropic_key = std::env::var("ANTHROPIC_API_KEY").ok();
+        let saved_model = std::env::var("MODEL").ok();
+        let saved_temp = std::env::var("TEMPERATURE").ok();
+        let saved_tokens = std::env::var("MAX_TOKENS").ok();
+
         unsafe {
             std::env::remove_var("OPENAI_API_KEY");
             std::env::remove_var("ANTHROPIC_API_KEY");
@@ -412,9 +465,14 @@ guardrails:
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("OPENAI_API_KEY"));
 
-        // Clean up
+        // Restore env vars
         unsafe {
-            std::env::remove_var("LLM_PROVIDER");
+            if let Some(v) = saved_provider { std::env::set_var("LLM_PROVIDER", v); } else { std::env::remove_var("LLM_PROVIDER"); }
+            if let Some(v) = saved_openai_key { std::env::set_var("OPENAI_API_KEY", v); } else { std::env::remove_var("OPENAI_API_KEY"); }
+            if let Some(v) = saved_anthropic_key { std::env::set_var("ANTHROPIC_API_KEY", v); } else { std::env::remove_var("ANTHROPIC_API_KEY"); }
+            if let Some(v) = saved_model { std::env::set_var("MODEL", v); } else { std::env::remove_var("MODEL"); }
+            if let Some(v) = saved_temp { std::env::set_var("TEMPERATURE", v); } else { std::env::remove_var("TEMPERATURE"); }
+            if let Some(v) = saved_tokens { std::env::set_var("MAX_TOKENS", v); } else { std::env::remove_var("MAX_TOKENS"); }
         }
     }
 
