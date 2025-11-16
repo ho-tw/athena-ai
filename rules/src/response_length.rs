@@ -27,3 +27,51 @@ impl Rule for ResponseLengthRule {
         context.add_constraint(constraint);
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_response_length_rule_adds_constraint() {
+        let rule = ResponseLengthRule::new(150);
+        let mut context = PlanningContext::new("You are a helpful assistant.".to_string());
+        
+        // Initially no constraints
+        assert_eq!(context.constraints.len(), 0);
+        
+        // Apply the rule
+        rule.apply(&mut context);
+        
+        // Should have one constraint
+        assert_eq!(context.constraints.len(), 1);
+        assert_eq!(context.constraints[0], "Keep responses under 150 words");
+    }
+
+    #[test]
+    fn test_response_length_rule_name() {
+        let rule = ResponseLengthRule::new(100);
+        assert_eq!(rule.name(), "response_length");
+    }
+
+    #[test]
+    fn test_response_length_rule_priority() {
+        let rule = ResponseLengthRule::new(100);
+        assert_eq!(rule.priority(), 100);
+    }
+
+    #[test]
+    fn test_response_length_rule_different_limits() {
+        let rule1 = ResponseLengthRule::new(50);
+        let rule2 = ResponseLengthRule::new(500);
+        
+        let mut context1 = PlanningContext::new("Test".to_string());
+        let mut context2 = PlanningContext::new("Test".to_string());
+        
+        rule1.apply(&mut context1);
+        rule2.apply(&mut context2);
+        
+        assert_eq!(context1.constraints[0], "Keep responses under 50 words");
+        assert_eq!(context2.constraints[0], "Keep responses under 500 words");
+    }
+}

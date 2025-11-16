@@ -50,3 +50,70 @@ impl Rule for ToneRule {
         context.system_prompt.push_str(guidance);
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_tone_rule_modifies_system_prompt_formal() {
+        let rule = ToneRule::new(Tone::Formal);
+        let mut context = PlanningContext::new("You are a helpful assistant.".to_string());
+        
+        let original_prompt = context.system_prompt.clone();
+        
+        // Apply the rule
+        rule.apply(&mut context);
+        
+        // System prompt should be modified
+        assert_ne!(context.system_prompt, original_prompt);
+        assert!(context.system_prompt.contains("formal, professional tone"));
+        assert!(context.system_prompt.contains("Be polite and respectful"));
+    }
+
+    #[test]
+    fn test_tone_rule_modifies_system_prompt_casual() {
+        let rule = ToneRule::new(Tone::Casual);
+        let mut context = PlanningContext::new("You are a helpful assistant.".to_string());
+        
+        rule.apply(&mut context);
+        
+        assert!(context.system_prompt.contains("casual, conversational tone"));
+        assert!(context.system_prompt.contains("friendly and approachable"));
+    }
+
+    #[test]
+    fn test_tone_rule_modifies_system_prompt_technical() {
+        let rule = ToneRule::new(Tone::Technical);
+        let mut context = PlanningContext::new("You are a helpful assistant.".to_string());
+        
+        rule.apply(&mut context);
+        
+        assert!(context.system_prompt.contains("technical tone"));
+        assert!(context.system_prompt.contains("precise terminology"));
+    }
+
+    #[test]
+    fn test_tone_rule_name() {
+        let rule = ToneRule::new(Tone::Formal);
+        assert_eq!(rule.name(), "tone");
+    }
+
+    #[test]
+    fn test_tone_rule_priority() {
+        let rule = ToneRule::new(Tone::Formal);
+        assert_eq!(rule.priority(), 50);
+    }
+
+    #[test]
+    fn test_tone_rule_preserves_original_prompt() {
+        let rule = ToneRule::new(Tone::Formal);
+        let original = "You are a helpful assistant.";
+        let mut context = PlanningContext::new(original.to_string());
+        
+        rule.apply(&mut context);
+        
+        // Original prompt should still be present
+        assert!(context.system_prompt.starts_with(original));
+    }
+}

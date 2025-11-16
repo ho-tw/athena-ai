@@ -495,7 +495,7 @@ This implementation plan provides a series of prompts for implementing the AI ag
   - Add module documentation
   - _Requirements: 9.1, 9.4_
 
-- [ ]* 11.6 Write unit tests for rules
+- [x] 11.6 Write unit tests for rules
   - Test ResponseLengthRule adds constraint to context
   - Test ToneRule modifies system prompt
   - Test RuleEngine applies rules in priority order
