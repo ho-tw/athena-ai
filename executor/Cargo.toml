@@ -10,3 +10,7 @@ planner = { version = "0.1.0", path = "../planner" }
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 tools = { version = "0.1.0", path = "../tools" }
+
+[dev-dependencies]
+async-trait = "0.1"
+tokio = { workspace = true, features = ["macros", "rt"] }

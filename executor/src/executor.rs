@@ -164,3 +164,431 @@ impl Executor {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use agent_core::Message;
+    use async_trait::async_trait;
+    use planner::{Plan, Step, ToolCall};
+    use serde_json::{json, Value};
+    use std::sync::{Arc, Mutex};
+
+    // Mock MemoryStore for testing
+    #[derive(Clone)]
+    struct MockMemoryStore {
+        messages: Arc<Mutex<Vec<Message>>>,
+    }
+
+    impl MockMemoryStore {
+        fn new() -> Self {
+            Self {
+                messages: Arc::new(Mutex::new(Vec::new())),
+            }
+        }
+
+        fn get_messages(&self) -> Vec<Message> {
+            self.messages.lock().unwrap().clone()
+        }
+    }
+
+    impl MemoryStore for MockMemoryStore {
+        fn add_message(&mut self, message: Message) {
+            self.messages.lock().unwrap().push(message);
+        }
+
+        fn get_recent(&self, limit: usize) -> Vec<Message> {
+            let messages = self.messages.lock().unwrap();
+            messages.iter().rev().take(limit).rev().cloned().collect()
+        }
+
+        fn get_within_budget(&self, _token_budget: usize) -> Vec<Message> {
+            self.messages.lock().unwrap().clone()
+        }
+
+        fn clear(&mut self) {
+            self.messages.lock().unwrap().clear();
+        }
+    }
+
+    // Mock Tool that always succeeds
+    struct MockSuccessTool {
+        name: String,
+        result: Value,
+    }
+
+    impl MockSuccessTool {
+        fn new(name: &str, result: Value) -> Self {
+            Self {
+                name: name.to_string(),
+                result,
+            }
+        }
+    }
+
+    #[async_trait]
+    impl tools::Tool for MockSuccessTool {
+        fn name(&self) -> &str {
+            &self.name
+        }
+
+        fn description(&self) -> &str {
+            "Mock tool for testing"
+        }
+
+        fn parameters_schema(&self) -> Value {
+            json!({
+                "type": "object",
+                "properties": {}
+            })
+        }
+
+        async fn execute(&self, _params: Value) -> Result<Value> {
+            Ok(self.result.clone())
+        }
+    }
+
+    // Mock Tool that always fails
+    struct MockFailureTool {
+        name: String,
+    }
+
+    impl MockFailureTool {
+        fn new(name: &str) -> Self {
+            Self {
+                name: name.to_string(),
+            }
+        }
+    }
+
+    #[async_trait]
+    impl tools::Tool for MockFailureTool {
+        fn name(&self) -> &str {
+            &self.name
+        }
+
+        fn description(&self) -> &str {
+            "Mock tool that fails"
+        }
+
+        fn parameters_schema(&self) -> Value {
+            json!({
+                "type": "object",
+                "properties": {}
+            })
+        }
+
+        async fn execute(&self, _params: Value) -> Result<Value> {
+            Err(agent_core::AgentError::ToolExecution {
+                tool_name: self.name.clone(),
+                reason: "Mock tool failure".to_string(),
+            })
+        }
+    }
+
+    #[tokio::test]
+    async fn test_execute_step_reasoning() {
+        let registry = ToolRegistry::new();
+        let memory = Box::new(MockMemoryStore::new());
+        let mut executor = Executor::new(registry, memory);
+
+        let step = Step::Reasoning {
+            text: "This is a reasoning step".to_string(),
+        };
+
+        let result = executor.execute_step(&step).await.unwrap();
+        assert_eq!(result.step_type, "reasoning");
+        assert_eq!(result.output, "This is a reasoning step");
+        assert!(result.success);
+    }
+
+    #[tokio::test]
+    async fn test_execute_step_response() {
+        let registry = ToolRegistry::new();
+        let memory = Box::new(MockMemoryStore::new());
+        let mut executor = Executor::new(registry, memory);
+
+        let step = Step::Response {
+            text: "This is a response".to_string(),
+        };
+
+        let result = executor.execute_step(&step).await.unwrap();
+        assert_eq!(result.step_type, "response");
+        assert_eq!(result.output, "This is a response");
+        assert!(result.success);
+    }
+
+    #[tokio::test]
+    async fn test_execute_step_tool_call_success() {
+        let mut registry = ToolRegistry::new();
+        registry.register(Box::new(MockSuccessTool::new(
+            "test_tool",
+            json!({"result": "success"}),
+        )));
+
+        let memory = Box::new(MockMemoryStore::new());
+        let mut executor = Executor::new(registry, memory);
+
+        let tool_call = ToolCall::new("test_tool".to_string(), json!({}));
+        let step = Step::ToolCall(tool_call);
+
+        let result = executor.execute_step(&step).await.unwrap();
+        assert_eq!(result.step_type, "tool_call:test_tool");
+        assert!(result.output.contains("success"));
+        assert!(result.success);
+    }
+
+    #[tokio::test]
+    async fn test_handle_tool_call_valid_tool() {
+        let mut registry = ToolRegistry::new();
+        registry.register(Box::new(MockSuccessTool::new(
+            "calculator",
+            json!({"result": 42}),
+        )));
+
+        let memory = Box::new(MockMemoryStore::new());
+        let mut executor = Executor::new(registry, memory);
+
+        let tool_call = ToolCall::new("calculator".to_string(), json!({"a": 2, "b": 3}));
+
+        let result = executor.handle_tool_call(&tool_call).await.unwrap();
+        assert_eq!(result.step_type, "tool_call:calculator");
+        assert!(result.output.contains("42"));
+        assert!(result.success);
+    }
+
+    #[tokio::test]
+    async fn test_handle_tool_call_invalid_tool() {
+        let registry = ToolRegistry::new();
+        let memory = Box::new(MockMemoryStore::new());
+        let mut executor = Executor::new(registry, memory);
+
+        let tool_call = ToolCall::new("nonexistent_tool".to_string(), json!({}));
+
+        let result = executor.handle_tool_call(&tool_call).await;
+        assert!(result.is_err());
+
+        match result {
+            Err(agent_core::AgentError::ToolExecution { tool_name, reason }) => {
+                assert_eq!(tool_name, "nonexistent_tool");
+                assert!(reason.contains("not found"));
+            }
+            _ => panic!("Expected ToolExecution error"),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_handle_tool_call_tool_execution_failure() {
+        let mut registry = ToolRegistry::new();
+        registry.register(Box::new(MockFailureTool::new("failing_tool")));
+
+        let memory = Box::new(MockMemoryStore::new());
+        let mut executor = Executor::new(registry, memory);
+
+        let tool_call = ToolCall::new("failing_tool".to_string(), json!({}));
+
+        let result = executor.handle_tool_call(&tool_call).await;
+        assert!(result.is_err());
+
+        match result {
+            Err(agent_core::AgentError::ToolExecution { tool_name, reason }) => {
+                assert_eq!(tool_name, "failing_tool");
+                assert!(reason.contains("Mock tool failure"));
+            }
+            _ => panic!("Expected ToolExecution error"),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_execute_plan_single_step() {
+        let registry = ToolRegistry::new();
+        let memory = Box::new(MockMemoryStore::new());
+        let mut executor = Executor::new(registry, memory);
+
+        let plan = Plan::new(
+            vec![Step::Response {
+                text: "Hello, world!".to_string(),
+            }],
+            "Simple single-step plan".to_string(),
+        );
+
+        let result = executor.execute_plan(plan).await.unwrap();
+        assert!(result.success);
+        assert_eq!(result.final_response, "Hello, world!");
+        assert_eq!(result.step_results.len(), 1);
+        assert!(result.step_results[0].success);
+    }
+
+    #[tokio::test]
+    async fn test_execute_plan_multi_step() {
+        let mut registry = ToolRegistry::new();
+        registry.register(Box::new(MockSuccessTool::new(
+            "tool1",
+            json!({"data": "result1"}),
+        )));
+        registry.register(Box::new(MockSuccessTool::new(
+            "tool2",
+            json!({"data": "result2"}),
+        )));
+
+        let memory = Box::new(MockMemoryStore::new());
+        let mut executor = Executor::new(registry, memory);
+
+        let plan = Plan::new(
+            vec![
+                Step::Reasoning {
+                    text: "First, I'll use tool1".to_string(),
+                },
+                Step::ToolCall(ToolCall::new("tool1".to_string(), json!({}))),
+                Step::Reasoning {
+                    text: "Now I'll use tool2".to_string(),
+                },
+                Step::ToolCall(ToolCall::new("tool2".to_string(), json!({}))),
+                Step::Response {
+                    text: "All done!".to_string(),
+                },
+            ],
+            "Multi-step plan".to_string(),
+        );
+
+        let result = executor.execute_plan(plan).await.unwrap();
+        assert!(result.success);
+        assert_eq!(result.final_response, "All done!");
+        assert_eq!(result.step_results.len(), 5);
+        assert!(result.step_results.iter().all(|r| r.success));
+    }
+
+    #[tokio::test]
+    async fn test_execute_plan_with_failure() {
+        let mut registry = ToolRegistry::new();
+        registry.register(Box::new(MockSuccessTool::new(
+            "good_tool",
+            json!({"result": "ok"}),
+        )));
+        registry.register(Box::new(MockFailureTool::new("bad_tool")));
+
+        let memory = Box::new(MockMemoryStore::new());
+        let mut executor = Executor::new(registry, memory);
+
+        let plan = Plan::new(
+            vec![
+                Step::ToolCall(ToolCall::new("good_tool".to_string(), json!({}))),
+                Step::ToolCall(ToolCall::new("bad_tool".to_string(), json!({}))),
+                Step::Response {
+                    text: "This should not execute".to_string(),
+                },
+            ],
+            "Plan with failure".to_string(),
+        );
+
+        let result = executor.execute_plan(plan).await.unwrap();
+        assert!(!result.success);
+        // Should have 2 step results: one success, one failure
+        assert_eq!(result.step_results.len(), 2);
+        assert!(result.step_results[0].success);
+        assert!(!result.step_results[1].success);
+    }
+
+    #[tokio::test]
+    async fn test_execute_plan_stores_results_in_memory() {
+        let mut registry = ToolRegistry::new();
+        registry.register(Box::new(MockSuccessTool::new(
+            "test_tool",
+            json!({"result": "data"}),
+        )));
+
+        let memory_store = MockMemoryStore::new();
+        let memory_clone = memory_store.clone();
+        let mut executor = Executor::new(registry, Box::new(memory_store));
+
+        let plan = Plan::new(
+            vec![
+                Step::Reasoning {
+                    text: "Thinking...".to_string(),
+                },
+                Step::ToolCall(ToolCall::new("test_tool".to_string(), json!({}))),
+                Step::Response {
+                    text: "Done!".to_string(),
+                },
+            ],
+            "Plan to test memory".to_string(),
+        );
+
+        executor.execute_plan(plan).await.unwrap();
+
+        // Check that results were stored in memory
+        let messages = memory_clone.get_messages();
+        assert_eq!(messages.len(), 3);
+        assert!(messages[0].content.contains("Thinking"));
+        assert!(messages[1].content.contains("data"));
+        assert!(messages[2].content.contains("Done"));
+    }
+
+    #[tokio::test]
+    async fn test_execute_plan_empty_plan() {
+        let registry = ToolRegistry::new();
+        let memory = Box::new(MockMemoryStore::new());
+        let mut executor = Executor::new(registry, memory);
+
+        let plan = Plan::new(vec![], "Empty plan".to_string());
+
+        let result = executor.execute_plan(plan).await.unwrap();
+        assert!(result.success);
+        assert_eq!(result.final_response, "");
+        assert_eq!(result.step_results.len(), 0);
+    }
+
+    #[tokio::test]
+    async fn test_execute_plan_no_explicit_response() {
+        let mut registry = ToolRegistry::new();
+        registry.register(Box::new(MockSuccessTool::new(
+            "tool1",
+            json!({"result": "output1"}),
+        )));
+        registry.register(Box::new(MockSuccessTool::new(
+            "tool2",
+            json!({"result": "output2"}),
+        )));
+
+        let memory = Box::new(MockMemoryStore::new());
+        let mut executor = Executor::new(registry, memory);
+
+        let plan = Plan::new(
+            vec![
+                Step::ToolCall(ToolCall::new("tool1".to_string(), json!({}))),
+                Step::ToolCall(ToolCall::new("tool2".to_string(), json!({}))),
+            ],
+            "Plan without explicit response".to_string(),
+        );
+
+        let result = executor.execute_plan(plan).await.unwrap();
+        assert!(result.success);
+        // Should build response from step outputs
+        assert!(result.final_response.contains("output1"));
+        assert!(result.final_response.contains("output2"));
+        assert_eq!(result.step_results.len(), 2);
+    }
+
+    #[tokio::test]
+    async fn test_list_tools() {
+        let mut registry = ToolRegistry::new();
+        registry.register(Box::new(MockSuccessTool::new(
+            "tool1",
+            json!({"result": "ok"}),
+        )));
+        registry.register(Box::new(MockSuccessTool::new(
+            "tool2",
+            json!({"result": "ok"}),
+        )));
+
+        let memory = Box::new(MockMemoryStore::new());
+        let executor = Executor::new(registry, memory);
+
+        let tools = executor.list_tools();
+        assert_eq!(tools.len(), 2);
+
+        let tool_names: Vec<String> = tools.iter().map(|t| t.name.clone()).collect();
+        assert!(tool_names.contains(&"tool1".to_string()));
+        assert!(tool_names.contains(&"tool2".to_string()));
+    }
+}
