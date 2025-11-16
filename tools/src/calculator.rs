@@ -105,3 +105,152 @@ impl Tool for Calculator {
         }))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[tokio::test]
+    async fn test_calculator_addition() {
+        let calc = Calculator::new();
+        let params = json!({
+            "operation": "add",
+            "a": 5.0,
+            "b": 3.0
+        });
+        
+        let result = calc.execute(params).await.unwrap();
+        assert_eq!(result["result"], 8.0);
+        assert_eq!(result["operation"], "add");
+    }
+
+    #[tokio::test]
+    async fn test_calculator_subtraction() {
+        let calc = Calculator::new();
+        let params = json!({
+            "operation": "subtract",
+            "a": 10.0,
+            "b": 4.0
+        });
+        
+        let result = calc.execute(params).await.unwrap();
+        assert_eq!(result["result"], 6.0);
+    }
+
+    #[tokio::test]
+    async fn test_calculator_multiplication() {
+        let calc = Calculator::new();
+        let params = json!({
+            "operation": "multiply",
+            "a": 6.0,
+            "b": 7.0
+        });
+        
+        let result = calc.execute(params).await.unwrap();
+        assert_eq!(result["result"], 42.0);
+    }
+
+    #[tokio::test]
+    async fn test_calculator_division() {
+        let calc = Calculator::new();
+        let params = json!({
+            "operation": "divide",
+            "a": 20.0,
+            "b": 4.0
+        });
+        
+        let result = calc.execute(params).await.unwrap();
+        assert_eq!(result["result"], 5.0);
+    }
+
+    #[tokio::test]
+    async fn test_calculator_division_by_zero() {
+        let calc = Calculator::new();
+        let params = json!({
+            "operation": "divide",
+            "a": 10.0,
+            "b": 0.0
+        });
+        
+        let result = calc.execute(params).await;
+        assert!(result.is_err());
+        
+        if let Err(AgentError::ToolExecution { tool_name, reason }) = result {
+            assert_eq!(tool_name, "calculator");
+            assert!(reason.contains("Division by zero"));
+        } else {
+            panic!("Expected ToolExecution error");
+        }
+    }
+
+    #[tokio::test]
+    async fn test_calculator_invalid_operation() {
+        let calc = Calculator::new();
+        let params = json!({
+            "operation": "modulo",
+            "a": 10.0,
+            "b": 3.0
+        });
+        
+        let result = calc.execute(params).await;
+        assert!(result.is_err());
+        
+        if let Err(AgentError::ToolExecution { tool_name, reason }) = result {
+            assert_eq!(tool_name, "calculator");
+            assert!(reason.contains("Unknown operation"));
+        } else {
+            panic!("Expected ToolExecution error");
+        }
+    }
+
+    #[tokio::test]
+    async fn test_calculator_missing_parameter() {
+        let calc = Calculator::new();
+        let params = json!({
+            "operation": "add",
+            "a": 5.0
+            // Missing 'b' parameter
+        });
+        
+        let result = calc.execute(params).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_calculator_invalid_parameter_type() {
+        let calc = Calculator::new();
+        let params = json!({
+            "operation": "add",
+            "a": "not a number",
+            "b": 3.0
+        });
+        
+        let result = calc.execute(params).await;
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_calculator_name() {
+        let calc = Calculator::new();
+        assert_eq!(calc.name(), "calculator");
+    }
+
+    #[test]
+    fn test_calculator_description() {
+        let calc = Calculator::new();
+        assert!(!calc.description().is_empty());
+    }
+
+    #[test]
+    fn test_calculator_parameters_schema() {
+        let calc = Calculator::new();
+        let schema = calc.parameters_schema();
+        
+        assert_eq!(schema["type"], "object");
+        assert!(schema["properties"]["operation"].is_object());
+        assert!(schema["properties"]["a"].is_object());
+        assert!(schema["properties"]["b"].is_object());
+        assert!(schema["required"].is_array());
+    }
+}

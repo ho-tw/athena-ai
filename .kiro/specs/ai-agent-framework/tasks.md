@@ -289,7 +289,7 @@ This implementation plan provides a series of prompts for implementing the AI ag
   - Add module documentation
   - _Requirements: 5.1, 5.4_
 
-- [ ]* 7.7 Write unit tests for tools
+- [x] 7.7 Write unit tests for tools
   - Test Calculator with various operations
   - Test FileReader with existing and non-existing files
   - Test WebSearchStub returns expected format

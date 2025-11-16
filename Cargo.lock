@@ -2119,6 +2119,8 @@ dependencies = [
  "agent-core",
  "async-trait",
  "serde_json",
+ "tempfile",
+ "tokio",
 ]
 
 [[package]]

@@ -7,3 +7,7 @@ edition = "2024"
 async-trait = "0.1.89"
 serde_json.workspace = true
 agent-core = { path = "../core" }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros", "rt"] }
+tempfile = "3.8"
