@@ -105,7 +105,7 @@ This implementation plan provides a series of prompts for implementing the AI ag
   - Only retry on network errors and 5xx status codes, not 4xx errors
   - _Requirements: 3.5_
 
-- [ ]* 3.4 Write unit tests for HTTP client
+- [x] 3.4 Write unit tests for HTTP client
   - Test successful POST request with mock server
   - Test retry behavior with simulated failures
   - Test timeout handling
