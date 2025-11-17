@@ -1,3 +1,9 @@
+//! Agent orchestration module.
+//!
+//! This module provides the main Agent struct that coordinates all framework
+//! components (LLM, memory, planner, executor, tools, guardrails) to process
+//! user queries.
+
 use agent_core::Result;
 use config::AgentConfig;
 use executor::Executor;
@@ -7,7 +13,13 @@ use memory::{InMemoryStore, MemoryStore};
 use planner::Planner;
 use tools::{Calculator, FileReader, ToolRegistry, WebSearchStub};
 
-/// Main agent structure that orchestrates all framework components
+/// Main agent structure that orchestrates all framework components.
+///
+/// The Agent coordinates:
+/// - Memory: Stores conversation history
+/// - Planner: Generates plans from user queries
+/// - Executor: Runs plans and invokes tools
+/// - Guardrails: Validates plans before execution
 pub struct Agent {
     memory: Box<dyn MemoryStore>,
     planner: Planner,

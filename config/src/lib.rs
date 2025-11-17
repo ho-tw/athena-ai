@@ -1,3 +1,20 @@
+//! Configuration management for the AI agent framework.
+//!
+//! This crate provides configuration loading and validation from multiple sources:
+//! - YAML configuration files
+//! - Environment variables
+//! - Programmatic configuration
+//!
+//! # Example
+//!
+//! ```no_run
+//! use agent_config::{load_from_file, validate};
+//! use std::path::Path;
+//!
+//! let config = load_from_file(Path::new("config.yaml")).unwrap();
+//! validate(&config).unwrap();
+//! ```
+
 use agent_core::{AgentError, Result};
 use serde::Deserialize;
 use std::path::Path;

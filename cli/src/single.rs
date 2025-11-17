@@ -1,3 +1,8 @@
+//! Single-turn mode for processing one query and exiting.
+//!
+//! This module provides a simple interface for one-off queries, useful for
+//! scripting and command-line usage.
+
 use crate::agent::Agent;
 use agent_core::Result;
 use colored::Colorize;

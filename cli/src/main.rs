@@ -1,3 +1,26 @@
+//! Command-line interface for the AI Agent Framework.
+//!
+//! This binary provides a CLI for interacting with AI agents. It supports:
+//! - Single-turn mode: Process one query and exit
+//! - REPL mode: Interactive conversation with the agent
+//!
+//! # Usage
+//!
+//! Single-turn mode:
+//! ```bash
+//! ai-agent --config config.yaml --query "What is 2+2?"
+//! ```
+//!
+//! REPL mode:
+//! ```bash
+//! ai-agent --config config.yaml
+//! ```
+//!
+//! Verbose logging:
+//! ```bash
+//! ai-agent --config config.yaml --verbose
+//! ```
+
 mod agent;
 mod args;
 mod repl;

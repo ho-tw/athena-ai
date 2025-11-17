@@ -1,3 +1,8 @@
+//! REPL (Read-Eval-Print Loop) mode for interactive conversations.
+//!
+//! This module provides an interactive conversation interface with line editing,
+//! history support, and colored output.
+
 use crate::agent::Agent;
 use agent_core::Result;
 use colored::Colorize;
