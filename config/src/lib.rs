@@ -8,7 +8,7 @@
 //! # Example
 //!
 //! ```no_run
-//! use agent_config::{load_from_file, validate};
+//! use config::{load_from_file, validate};
 //! use std::path::Path;
 //!
 //! let config = load_from_file(Path::new("config.yaml")).unwrap();
