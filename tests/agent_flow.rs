@@ -6,119 +6,20 @@
 //! 3. Execute the plan with tool calls
 //! 4. Return a correct final response
 
-use agent_core::{Message, Result};
-use async_trait::async_trait;
-use llm::LLMProvider;
-use memory::{InMemoryStore, MemoryStore};
+mod common;
+
+use common::{MockLLM, MockMemoryStore, fixtures};
+use memory::InMemoryStore;
 use planner::{Planner, Step};
 use executor::Executor;
 use tools::{Calculator, ToolRegistry};
-use std::sync::{Arc, Mutex};
-
-/// Mock LLM provider that returns predefined responses
-/// 
-/// This mock allows us to test the agent flow without making real API calls.
-/// It tracks how many times it's been called and returns responses from a list.
-struct MockLLM {
-    responses: Vec<String>,
-    call_count: Arc<Mutex<usize>>,
-}
-
-impl MockLLM {
-    /// Creates a new MockLLM with predefined responses
-    fn new(responses: Vec<String>) -> Self {
-        Self {
-            responses,
-            call_count: Arc::new(Mutex::new(0)),
-        }
-    }
-    
-    /// Returns the number of times send_message was called
-    fn call_count(&self) -> usize {
-        *self.call_count.lock().unwrap()
-    }
-}
-
-#[async_trait]
-impl LLMProvider for MockLLM {
-    async fn send_message(&self, _messages: &[Message]) -> Result<String> {
-        let mut count = self.call_count.lock().unwrap();
-        let response = self.responses.get(*count)
-            .ok_or_else(|| agent_core::AgentError::LLMProvider(
-                format!("No response available for call {}", *count)
-            ))?
-            .clone();
-        *count += 1;
-        Ok(response)
-    }
-}
-
-/// Mock memory store for testing
-/// 
-/// Simple in-memory implementation that stores messages in a vector.
-struct MockMemoryStore {
-    messages: Vec<Message>,
-}
-
-impl MockMemoryStore {
-    fn new() -> Self {
-        Self {
-            messages: Vec::new(),
-        }
-    }
-}
-
-impl MemoryStore for MockMemoryStore {
-    fn add_message(&mut self, message: Message) {
-        self.messages.push(message);
-    }
-    
-    fn get_recent(&self, limit: usize) -> Vec<Message> {
-        self.messages.iter()
-            .rev()
-            .take(limit)
-            .rev()
-            .cloned()
-            .collect()
-    }
-    
-    fn get_within_budget(&self, _token_budget: usize) -> Vec<Message> {
-        // For testing, just return all messages
-        self.messages.clone()
-    }
-    
-    fn clear(&mut self) {
-        self.messages.clear();
-    }
-}
 
 #[tokio::test]
 async fn test_agent_flow_with_single_tool_call() {
     // Create a mock LLM that returns a plan with a calculator tool call
-    let plan_json = r#"{
-        "reasoning": "To calculate 15 + 27, I'll use the calculator tool with the add operation",
-        "steps": [
-            {
-                "type": "tool_call",
-                "tool_name": "calculator",
-                "parameters": {
-                    "operation": "add",
-                    "a": 15,
-                    "b": 27
-                }
-            },
-            {
-                "type": "reasoning",
-                "text": "The calculator returned 42 as the sum"
-            },
-            {
-                "type": "response",
-                "text": "15 + 27 equals 42"
-            }
-        ]
-    }"#;
+    let plan_json = fixtures::simple_calculator_plan();
     
-    let mock_llm = MockLLM::new(vec![plan_json.to_string()]);
+    let mock_llm = MockLLM::new(vec![plan_json]);
     let mock_memory = Box::new(MockMemoryStore::new());
     
     // Create planner with mock LLM
@@ -179,43 +80,9 @@ async fn test_agent_flow_with_single_tool_call() {
 #[tokio::test]
 async fn test_agent_flow_with_multiple_tool_calls() {
     // Create a plan with multiple calculator operations
-    let plan_json = r#"{
-        "reasoning": "To calculate (10 + 5) * 2, I'll first add 10 and 5, then multiply the result by 2",
-        "steps": [
-            {
-                "type": "tool_call",
-                "tool_name": "calculator",
-                "parameters": {
-                    "operation": "add",
-                    "a": 10,
-                    "b": 5
-                }
-            },
-            {
-                "type": "reasoning",
-                "text": "First calculation gives us 15"
-            },
-            {
-                "type": "tool_call",
-                "tool_name": "calculator",
-                "parameters": {
-                    "operation": "multiply",
-                    "a": 15,
-                    "b": 2
-                }
-            },
-            {
-                "type": "reasoning",
-                "text": "Second calculation gives us 30"
-            },
-            {
-                "type": "response",
-                "text": "The result of (10 + 5) * 2 is 30"
-            }
-        ]
-    }"#;
+    let plan_json = fixtures::multi_step_calculator_plan();
     
-    let mock_llm = MockLLM::new(vec![plan_json.to_string()]);
+    let mock_llm = MockLLM::new(vec![plan_json]);
     let mock_memory = Box::new(MockMemoryStore::new());
     
     let planner = Planner::new(Box::new(mock_llm), mock_memory);
@@ -259,18 +126,9 @@ async fn test_agent_flow_with_multiple_tool_calls() {
 #[tokio::test]
 async fn test_agent_flow_with_invalid_tool() {
     // Create a plan that references a non-existent tool
-    let plan_json = r#"{
-        "reasoning": "I'll use a non-existent tool",
-        "steps": [
-            {
-                "type": "tool_call",
-                "tool_name": "nonexistent_tool",
-                "parameters": {}
-            }
-        ]
-    }"#;
+    let plan_json = fixtures::invalid_tool_plan();
     
-    let mock_llm = MockLLM::new(vec![plan_json.to_string()]);
+    let mock_llm = MockLLM::new(vec![plan_json]);
     let mock_memory = Box::new(MockMemoryStore::new());
     
     let planner = Planner::new(Box::new(mock_llm), mock_memory);
@@ -297,21 +155,9 @@ async fn test_agent_flow_with_invalid_tool() {
 #[tokio::test]
 async fn test_agent_flow_without_tools() {
     // Create a plan with only reasoning and response (no tool calls)
-    let plan_json = r#"{
-        "reasoning": "This is a simple question that doesn't require tools",
-        "steps": [
-            {
-                "type": "reasoning",
-                "text": "The capital of France is a well-known fact"
-            },
-            {
-                "type": "response",
-                "text": "The capital of France is Paris"
-            }
-        ]
-    }"#;
+    let plan_json = fixtures::reasoning_only_plan();
     
-    let mock_llm = MockLLM::new(vec![plan_json.to_string()]);
+    let mock_llm = MockLLM::new(vec![plan_json]);
     let mock_memory = Box::new(MockMemoryStore::new());
     
     let planner = Planner::new(Box::new(mock_llm), mock_memory);
